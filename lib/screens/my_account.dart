@@ -20,6 +20,7 @@ class MyAccount extends StatefulWidget {
 class _MyAccountState extends State<MyAccount> {
   File _image;
   String _uploadedFileURL;
+  int progress = 0 ;
 
   Future<void> chooseFile() async {
     await ImagePicker.pickImage(source: ImageSource.gallery).then((image) {
@@ -28,6 +29,42 @@ class _MyAccountState extends State<MyAccount> {
       });
     });
   }
+
+  Widget showImage(User user) {
+    submitDetails(user);
+    return Container(
+      height: 245.0,
+      width: 345.0,
+      child: new DecoratedBox(decoration:new BoxDecoration(
+          shape: BoxShape.circle,
+      )),
+    );
+  }
+  Future uploadingImages() async {
+
+    final StorageReference mStorageRef = FirebaseStorage.instance.ref().child('images/${DateTime.now()}.png');
+    final StorageUploadTask uploadTask = mStorageRef.putFile(_image);
+    setState(() {
+      //prgrs=1;
+    });
+    final StorageTaskSnapshot uploadComplete = await uploadTask.onComplete;
+    _uploadedFileURL = await mStorageRef.getDownloadURL();
+    setState(() {
+     _uploadedFileURL = _uploadedFileURL as String;
+      progress=0;
+    });
+  }
+
+  void submitDetails(User user) async{
+    if(_image!=null)
+      await uploadingImages();
+    print('uploaded image');
+    Firestore.instance.collection('users').document(user.uid).updateData({
+      'photoUrl':'${_uploadedFileURL}',
+    });
+  }
+
+
 
   Future<void> _signOut(BuildContext context) async {
     final auth = Provider.of<AuthBase>(context);
@@ -110,7 +147,7 @@ class _MyAccountState extends State<MyAccount> {
                   child: FlatButton(
                     child: Center(
                       child: Text(
-                        'Logout',
+                        'Logout' ,
                         style: TextStyle(
                           fontSize: 18.0,
                           color: Colors.white,
@@ -128,29 +165,19 @@ class _MyAccountState extends State<MyAccount> {
     );
   }
 
-  Widget _buildUserInfo(User user) {
-    return Column(
-      children: <Widget>[
-        GestureDetector(
-          onTap: _image == null ? chooseFile : uploadFile,
-          child: Container(
-            child: Avatar(
-              photoUrl: _image != null ? _uploadedFileURL : user.photoUrl,
-              radius: 50,
-            ),
-          ),
+
+
+  Widget _buildUserImage(User user) {
+    return GestureDetector(
+      onTap: _image == null ? chooseFile : uploadFile,
+      child: Container(
+        child:CircleAvatar(
+          radius: 50,
+          backgroundColor: Colors.black12,
+          backgroundImage: _image!=null ? FileImage(_image) : null,
+          child: _image == null ? Icon(Icons.camera_alt,size: 50,): showImage(user),
         ),
-        SizedBox(
-          height: 12,
-        ),
-        if (user.name != null)
-          Text(
-            user.name,
-            style: TextStyle(
-              color: Colors.blue,
-            ),
-          ),
-      ],
+      ),
     );
   }
 
@@ -159,13 +186,13 @@ class _MyAccountState extends State<MyAccount> {
       return Column(
         children: <Widget>[
           SizedBox(
-            height: 70,
+            height: 120,
           ),
-          _buildUserInfo(user),
           Container(
             height: 100,
             child: Center(
               child: EmptyContent(
+                color: Colors.white,
                 title: "No Account Found :(",
                 message: 'Register yourself to get started',
               ),
@@ -173,47 +200,11 @@ class _MyAccountState extends State<MyAccount> {
           ),
         ],
       );
-    } else if (userDocument['name'] == null) {
+    }
+    else {
       return Column(
         children: <Widget>[
-          _buildUserInfo(user),
-          Card(
-              margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 25.0),
-              child: ListTile(
-                leading: Icon(
-                  Icons.phone,
-                  color: Colors.teal,
-                ),
-                title: Text(
-                  userDocument["phone"],
-                  style: TextStyle(
-                    color: Colors.teal.shade900,
-                    fontFamily: 'Source Sans Pro',
-                    fontSize: 20.0,
-                  ),
-                ),
-              )),
-          Card(
-              margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 25.0),
-              child: ListTile(
-                leading: Icon(
-                  Icons.email,
-                  color: Colors.teal,
-                ),
-                title: Text(
-                  userDocument["email"],
-                  style: TextStyle(
-                      fontSize: 20.0,
-                      color: Colors.teal.shade900,
-                      fontFamily: 'Source Sans Pro'),
-                ),
-              ))
-        ],
-      );
-    } else {
-      return Column(
-        children: <Widget>[
-          _buildUserInfo(user),
+          _buildUserImage(user),
           Container(
             child: ListTile(
               title: Center(
@@ -230,7 +221,6 @@ class _MyAccountState extends State<MyAccount> {
               )),
             ),
           ),
-
           Card(
               color: Colors.grey[200],
               margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 25.0),

@@ -1,10 +1,6 @@
-import 'dart:async';
 import 'package:double_back_to_close_app/double_back_to_close_app.dart';
 import 'package:flutter/material.dart';
-import 'package:g2h_medtech/services/auth.dart';
-import 'package:provider/provider.dart';
 
-import 'home.dart';
 
 class Welcome extends StatefulWidget {
   Welcome({Key key, this.uid})
@@ -15,14 +11,6 @@ class Welcome extends StatefulWidget {
 }
 
 class _WelcomeState extends State<Welcome> {
-  Future<void> _signOut(BuildContext context) async {
-    final auth = Provider.of<AuthBase>(context);
-    try {
-      await auth.signOut();
-    } catch (e) {
-      print('${e.toString()}');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,30 +84,7 @@ class _WelcomeState extends State<Welcome> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding:
-                      const EdgeInsets.only(top: 15.0, left: 80, right: 80),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white70,
-                          Colors.white70,
-                        ],
-                      ),
-                    ),
-                    child: MaterialButton(
-                      onPressed: () {
-                        _signOut(context);
-                      },
-                      child: Text(
-                        "Logout",
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ),
+
               ],
             ),
           ),

@@ -5,9 +5,11 @@ class EmptyContent extends StatelessWidget {
     Key key,
     this.message = 'Add a product to get started',
     this.title = 'Nothing Here',
+    this.color = Colors.black54,
   }) : super(key: key);
   final String message;
   final String title;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,7 @@ class EmptyContent extends StatelessWidget {
               title,
               style: TextStyle(
                 fontSize: 32,
-                color: Colors.black54,
+                color: color,
               ),
             ),
             SizedBox(height: 3,),
@@ -31,7 +33,7 @@ class EmptyContent extends StatelessWidget {
                 message,
                 style: TextStyle(
                   fontSize: 17,
-                  color: Colors.black54,
+                  color: color,
                 ),
               ),
             ),
