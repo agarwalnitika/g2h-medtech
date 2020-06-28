@@ -2,13 +2,12 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:g2h_medtech/common_widgets/avatar.dart';
 import 'package:g2h_medtech/common_widgets/empty_content.dart';
 import 'package:g2h_medtech/model/user.dart';
 import 'package:g2h_medtech/services/auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:path/path.dart' as Path;
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'edit_account.dart';
 
@@ -20,51 +19,44 @@ class MyAccount extends StatefulWidget {
 class _MyAccountState extends State<MyAccount> {
   File _image;
   String _uploadedFileURL;
-  int progress = 0 ;
+  int progress = 0;
+  var name;
+  var _imageString;
 
-  Future<void> chooseFile() async {
+  Future<void> chooseFile(User user) async {
     await ImagePicker.pickImage(source: ImageSource.gallery).then((image) {
       setState(() {
         _image = image;
       });
+
     });
+    addImage(user);
   }
 
-  Widget showImage(User user) {
-    submitDetails(user);
-    return Container(
-      height: 245.0,
-      width: 345.0,
-      child: new DecoratedBox(decoration:new BoxDecoration(
-          shape: BoxShape.circle,
-      )),
-    );
-  }
   Future uploadingImages() async {
-
-    final StorageReference mStorageRef = FirebaseStorage.instance.ref().child('images/${DateTime.now()}.png');
+    final StorageReference mStorageRef = FirebaseStorage.instance
+        .ref()
+        .child('images/$name/${DateTime.now()}.png');
     final StorageUploadTask uploadTask = mStorageRef.putFile(_image);
     setState(() {
-      //prgrs=1;
+      progress = 1;
     });
     final StorageTaskSnapshot uploadComplete = await uploadTask.onComplete;
     _uploadedFileURL = await mStorageRef.getDownloadURL();
     setState(() {
-     _uploadedFileURL = _uploadedFileURL as String;
-      progress=0;
+      _uploadedFileURL = _uploadedFileURL as String;
+      progress = 0;
     });
   }
 
-  void submitDetails(User user) async{
-    if(_image!=null)
-      await uploadingImages();
+  void addImage(User user) async {
+    if (_image != null) await uploadingImages();
     print('uploaded image');
     Firestore.instance.collection('users').document(user.uid).updateData({
-      'photoUrl':'${_uploadedFileURL}',
+      'photoUrl': '${_uploadedFileURL}',
     });
+    print('uploadedggimage');
   }
-
-
 
   Future<void> _signOut(BuildContext context) async {
     final auth = Provider.of<AuthBase>(context);
@@ -73,21 +65,6 @@ class _MyAccountState extends State<MyAccount> {
     } catch (e) {
       print('${e.toString()}');
     }
-  }
-
-  Future<void> uploadFile() async {
-    final auth = Provider.of<AuthBase>(context);
-    await auth.uploadImage(_image.path);
-    StorageReference storageReference = FirebaseStorage.instance
-        .ref()
-        .child('users/${Path.basename(_image.path)}}');
-    StorageUploadTask uploadTask = storageReference.putFile(_image);
-    await uploadTask.onComplete;
-    storageReference.getDownloadURL().then((fileURL) {
-      setState(() {
-        _uploadedFileURL = fileURL;
-      });
-    });
   }
 
   @override
@@ -124,6 +101,8 @@ class _MyAccountState extends State<MyAccount> {
                                 }
                                 var userDocument = snapshot.data;
                                 print(userDocument);
+                                name = userDocument['name'];
+                                _imageString = userDocument['photoUrl'];
                                 return ListView(
                                   children: <Widget>[
                                     SizedBox(
@@ -147,7 +126,7 @@ class _MyAccountState extends State<MyAccount> {
                   child: FlatButton(
                     child: Center(
                       child: Text(
-                        'Logout' ,
+                        'Logout',
                         style: TextStyle(
                           fontSize: 18.0,
                           color: Colors.white,
@@ -165,17 +144,26 @@ class _MyAccountState extends State<MyAccount> {
     );
   }
 
-
-
-  Widget _buildUserImage(User user) {
+  Widget _buildUserImage(
+      DocumentSnapshot userDocument, User user, BuildContext context) {
     return GestureDetector(
-      onTap: _image == null ? chooseFile : uploadFile,
+      onTap: (progress == 0)
+          ? () {
+              chooseFile(user);
+
+            }
+          : () {},
       child: Container(
-        child:CircleAvatar(
+        child: CircleAvatar(
           radius: 50,
           backgroundColor: Colors.black12,
-          backgroundImage: _image!=null ? FileImage(_image) : null,
-          child: _image == null ? Icon(Icons.camera_alt,size: 50,): showImage(user),
+          backgroundImage: _image != null
+              ? FileImage(_image)
+              : CachedNetworkImageProvider(
+                  userDocument['photoUrl'] == null
+                      ? 'https://png.pngtree.com/png-vector/20190223/ourmid/pngtree-vector-camera-icon-png-image_696326.jpg'
+                      : _imageString,
+                ),
         ),
       ),
     );
@@ -200,11 +188,10 @@ class _MyAccountState extends State<MyAccount> {
           ),
         ],
       );
-    }
-    else {
+    } else {
       return Column(
         children: <Widget>[
-          _buildUserImage(user),
+          _buildUserImage(userDocument, user, context),
           Container(
             child: ListTile(
               title: Center(
@@ -263,7 +250,7 @@ class _MyAccountState extends State<MyAccount> {
                   color: Colors.teal,
                 ),
                 title: Text(
-                 ' Edit Profile',
+                  ' Edit Profile',
                   style: TextStyle(
                       fontSize: 20.0,
                       color: Colors.teal.shade900,
@@ -271,8 +258,8 @@ class _MyAccountState extends State<MyAccount> {
                 ),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: (context) => EditAccount(
-                      name: userDocument["name"],
-                      phone: userDocument["phone"],
+                    name: userDocument["name"],
+                    phone: userDocument["phone"],
                   ),
                   fullscreenDialog: true,
                 )),
