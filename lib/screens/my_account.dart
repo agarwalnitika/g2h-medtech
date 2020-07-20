@@ -154,6 +154,7 @@ class _MyAccountState extends State<MyAccount> {
             }
           : () {},
       child: Container(
+
         child: CircleAvatar(
           radius: 50,
           backgroundColor: Colors.black12,
